@@ -7,6 +7,8 @@ import { transferenciaService, Transferencia } from '../services/transferenciaSe
 
 export default function Transferencias() {
   const [transferencias, setTransferencias] = useState<Transferencia[]>([])
+  const [showNotification, setShowNotification] = useState(false)
+  const [nomePaciente, setNomePaciente] = useState<number | null>(null)
 
   useEffect(() => {
     const fetchTransferencias = async () => {
@@ -15,6 +17,23 @@ export default function Transferencias() {
     }
     fetchTransferencias()
   }, [])
+
+  useEffect(() => {
+    const interval = setInterval(() => {
+      const now = new Date()
+      transferencias.forEach(transferencia => {
+        if (transferencia.horarioPrevisto) {
+          const horarioPrevisto = new Date(transferencia.horarioPrevisto)
+          if (now >= horarioPrevisto && transferencia.status === 'em_andamento') {
+            setNomePaciente(transferencia.pacienteId)
+            setShowNotification(true)
+          }
+        }
+      })
+    }, 60000)
+
+    return () => clearInterval(interval)
+  }, [transferencias])
 
   return (
     <div className="py-6">
@@ -67,8 +86,15 @@ export default function Transferencias() {
             </ul>
           </div>
         </div>
+        {showNotification && (
+          <div className="fixed bottom-0 right-0 m-4 p-4 bg-green-500 text-white rounded shadow-md">
+            <p>A transferência do paciente {nomePaciente} foi concluída!</p>
+            <button onClick={() => setShowNotification(false)} className="mt-2 bg-white text-green-500 font-bold py-1 px-2 rounded">
+              Fechar
+            </button>
+          </div>
+        )}
       </div>
     </div>
   )
 }
-
