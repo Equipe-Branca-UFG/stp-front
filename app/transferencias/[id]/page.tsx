@@ -8,6 +8,7 @@ import { Button } from '../../components/Button'
 import { transferenciaService, Transferencia } from '../../services/transferenciaService'
 import { pacienteService, Paciente } from '../../services/pacienteService'
 import { hospitalService, Hospital } from '../../services/hospitalService'
+import { format } from 'date-fns'
 
 export default function EditarTransferencia({ params }: { params: { id: string } }) {
   const router = useRouter()
@@ -21,6 +22,9 @@ export default function EditarTransferencia({ params }: { params: { id: string }
   })
   const [pacientes, setPacientes] = useState<Paciente[]>([])
   const [hospitais, setHospitais] = useState<Hospital[]>([])
+  const [showPopup, setShowPopup] = useState(false)
+  const [popupShowed, setPopupShowed] = useState(false)
+  const [savedTransferencia, setSavedTransferencia] = useState<Transferencia | null>(null)
 
   useEffect(() => {
     const fetchData = async () => {
@@ -39,6 +43,12 @@ export default function EditarTransferencia({ params }: { params: { id: string }
     fetchData()
   }, [params.id])
 
+  useEffect(() => {
+    if (!showPopup && popupShowed) {
+      router.push('/transferencias')
+    }
+  }, [showPopup])
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
     if (params.id === 'nova') {
@@ -46,7 +56,15 @@ export default function EditarTransferencia({ params }: { params: { id: string }
     } else {
       await transferenciaService.atualizarTransferencia(transferencia.id, transferencia)
     }
-    router.push('/transferencias')
+    setPopupShowed(true)
+    setSavedTransferencia(transferencia)
+    setShowPopup(true)
+  }
+
+  const formatDate = (dateString: string) => {
+    if (!dateString) return ''
+    const date = new Date(dateString)
+    return format(date, 'dd/MM/yyyy HH:mm')
   }
 
   return (
@@ -131,6 +149,23 @@ export default function EditarTransferencia({ params }: { params: { id: string }
             </Button>
           </div>
         </form>
+        {showPopup && savedTransferencia && (
+          <div className="fixed inset-0 flex items-center justify-center bg-gray-500 bg-opacity-75">
+            <div className="bg-white p-6 rounded shadow-md">
+              <h2 className="text-xl font-bold mb-4">Transferência Salva</h2>
+              <p><strong>Paciente:</strong> {savedTransferencia.pacienteId}</p>
+              <p><strong>Origem:</strong> {savedTransferencia.origem}</p>
+              <p><strong>Destino:</strong> {savedTransferencia.destino}</p>
+              <p><strong>Meio de Transporte:</strong> {savedTransferencia.meioTransporte}</p>
+              <p><strong>Status:</strong> {savedTransferencia.status}</p>
+              <p><strong>Horário de Saída:</strong> {formatDate(savedTransferencia?.horarioSaida)}</p>
+              <p><strong>Horário Previsto de Chegada:</strong> {formatDate(savedTransferencia?.horarioPrevisto)}</p>
+              <button onClick={() => setShowPopup(false)} className="mt-4 bg-blue-500 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded">
+                Fechar
+              </button>
+            </div>
+          </div>
+        )}
       </div>
     </div>
   )
